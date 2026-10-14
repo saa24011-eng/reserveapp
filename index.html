@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>施設予約管理システム</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts (Inter & Noto Sans JP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md">
+                    <i data-lucide="building-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-900 leading-tight">施設予約管理システム</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">Facility Reservation System</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    リアルタイム同期中
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
+        
+        <!-- Action Bar & Filter Bar -->
+        <section class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+            <!-- Filter Controls -->
+            <div class="flex flex-wrap items-center gap-3 flex-1">
+                <div class="flex items-center gap-2 text-sm font-semibold text-slate-700 min-w-max">
+                    <i data-lucide="filter" class="w-4 h-4 text-slate-400"></i>
+                    表示絞り込み:
+                </div>
+                <div class="flex-1 min-w-[180px]">
+                    <select id="filterFacility" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                        <option value="ALL">すべての施設</option>
+                        <option value="会議室A">会議室A (定員 10名)</option>
+                        <option value="会議室B">会議室B (定員 20名)</option>
+                        <option value="イベントホール">イベントホール (定員 100名)</option>
+                        <option value="多目的室">多目的室 (定員 30名)</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[160px]">
+                    <input type="date" id="filterDate" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                </div>
+                <button id="clearFiltersBtn" class="px-3 py-2.5 text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1 font-medium">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    リセット
+                </button>
+            </div>
+
+            <!-- New Booking Button Trigger -->
+            <button id="openModalBtn" class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-medium px-5 py-2.5 rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                新規予約を登録
+            </button>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left: Facility Information Cards -->
+            <div class="lg:col-span-1 flex flex-col gap-4">
+                <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i data-lucide="building" class="w-5 h-5 text-indigo-600"></i>
+                    利用可能施設
+                </h2>
+                
+                <div class="grid grid-cols-1 gap-3">
+                    <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 transition cursor-pointer facility-card" data-facility="会議室A">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-slate-900">会議室A</h3>
+                            <span class="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full font-medium">10名</span>
+                        </div>
+                        <p class="text-xs text-slate-500">プロジェクター・ホワイトボード完備。小規模ミーティング向け。</p>
+                    </div>
+
+                    <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 transition cursor-pointer facility-card" data-facility="会議室B">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-slate-900">会議室B</h3>
+                            <span class="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full font-medium">20名</span>
+                        </div>
+                        <p class="text-xs text-slate-500">モニター・マイク設備あり。中規模会議・ワークショップ等。</p>
+                    </div>
+
+                    <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 transition cursor-pointer facility-card" data-facility="イベントホール">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-slate-900">イベントホール</h3>
+                            <span class="text-xs bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full font-medium">100名</span>
+                        </div>
+                        <p class="text-xs text-slate-500">大型スクリーン・音響設備完備。セミナー・講演会用。</p>
+                    </div>
+
+                    <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 transition cursor-pointer facility-card" data-facility="多目的室">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-slate-900">多目的室</h3>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-medium">30名</span>
+                        </div>
+                        <p class="text-xs text-slate-500">可動式机・椅子。研修やグループワーク等に最適。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Reservation List -->
+            <div class="lg:col-span-2 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i data-lucide="calendar-range" class="w-5 h-5 text-indigo-600"></i>
+                        予約一覧 <span id="reservationCount" class="text-xs font-normal text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">0件</span>
+                    </h2>
+                    <div class="text-xs text-slate-500" id="currentFilterLabel">すべての予約</div>
+                </div>
+
+                <!-- Reservation Cards List Container -->
+                <div id="reservationsList" class="flex flex-col gap-3 min-h-[300px]">
+                    <!-- Dynamic reservation cards will load here -->
+                    <div class="p-12 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">
+                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-500"></i>
+                        <p class="text-sm">予約データを読み込み中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Booking Form Modal -->
+    <div id="bookingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-200 overflow-hidden" id="modalContainer">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-100 text-indigo-600 p-1.5 rounded-lg">
+                        <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900">新規施設予約</h3>
+                </div>
+                <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="bookingForm" class="p-6 overflow-y-auto space-y-4 flex-1">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">対象施設 <span class="text-red-500">*</span></label>
+                    <select id="modalFacility" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                        <option value="会議室A">会議室A (最大10名)</option>
+                        <option value="会議室B">会議室B (最大20名)</option>
+                        <option value="イベントホール">イベントホール (最大100名)</option>
+                        <option value="多目的室">多目的室 (最大30名)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">利用日 <span class="text-red-500">*</span></label>
+                    <input type="date" id="modalDate" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">開始時間 <span class="text-red-500">*</span></label>
+                        <input type="time" id="modalStartTime" required step="900" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">終了時間 <span class="text-red-500">*</span></label>
+                        <input type="time" id="modalEndTime" required step="900" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">予約者名 / 団体名 <span class="text-red-500">*</span></label>
+                        <input type="text" id="modalReservedBy" required placeholder="例: 山田 太郎" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">利用人数 <span class="text-red-500">*</span></label>
+                        <input type="number" id="modalPeople" min="1" required placeholder="名" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">連絡先 (電話番号 / メールアドレス)</label>
+                    <input type="text" id="modalContact" placeholder="例: 090-0000-0000" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">利用目的 <span class="text-red-500">*</span></label>
+                    <textarea id="modalPurpose" required rows="2" placeholder="例: 部署内企画会議および資料確認" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none transition resize-none"></textarea>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button type="button" id="cancelFormBtn" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-100 transition">
+                        キャンセル
+                    </button>
+                    <button type="submit" id="submitBookingBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition flex items-center gap-2">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        予約を確定する
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Firebase SDK (v11 Modern Standard ES Modules via script type="module") -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            deleteDoc, 
+            doc, 
+            onSnapshot, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Provided Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAx3MtBqHakfwtRCcyTnTEBpUjWskJk9w4",
+            authDomain: "task7-ae56c.firebaseapp.com",
+            projectId: "task7-ae56c",
+            storageBucket: "task7-ae56c.firebasestorage.app",
+            messagingSenderId: "704068811817",
+            appId: "1:704068811817:web:6d64ad930f6779dcb23038"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Firestore Collection Reference
+        const RESERVATIONS_COLLECTION = 'reservations';
+
+        // Local state store
+        let allReservations = [];
+        let currentFilterFacility = 'ALL';
+        let currentFilterDate = '';
+
+        // DOM Elements
+        const filterFacilityEl = document.getElementById('filterFacility');
+        const filterDateEl = document.getElementById('filterDate');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelFormBtn = document.getElementById('cancelFormBtn');
+        const bookingModal = document.getElementById('bookingModal');
+        const modalContainer = document.getElementById('modalContainer');
+        const bookingForm = document.getElementById('bookingForm');
+        const reservationsListEl = document.getElementById('reservationsList');
+        const reservationCountEl = document.getElementById('reservationCount');
+        const currentFilterLabelEl = document.getElementById('currentFilterLabel');
+
+        // Form Fields
+        const modalFacility = document.getElementById('modalFacility');
+        const modalDate = document.getElementById('modalDate');
+        const modalStartTime = document.getElementById('modalStartTime');
+        const modalEndTime = document.getElementById('modalEndTime');
+        const modalReservedBy = document.getElementById('modalReservedBy');
+        const modalPeople = document.getElementById('modalPeople');
+        const modalContact = document.getElementById('modalContact');
+        const modalPurpose = document.getElementById('modalPurpose');
+
+        // Set default date filter to today
+        const todayStr = new Date().toISOString().split('T')[0];
+        modalDate.value = todayStr;
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-slate-900 text-white' : 'bg-red-600 text-white';
+            const iconName = isSuccess ? 'check-circle-2' : 'alert-triangle';
+
+            toast.className = `${bgColor} p-4 rounded-xl shadow-lg flex items-center justify-between gap-3 text-sm pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="${iconName}" class="w-5 h-5 text-emerald-400"></i>
+                    <span>${message}</span>
+                </div>
+                <button class="text-slate-400 hover:text-white transition" onclick="this.parentElement.remove()">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function openModal(facilityName = null) {
+            if (facilityName) {
+                modalFacility.value = facilityName;
+            }
+            bookingModal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContainer.classList.remove('scale-95');
+            modalContainer.classList.add('scale-100');
+        }
+
+        function closeModal() {
+            modalContainer.classList.remove('scale-100');
+            modalContainer.classList.add('scale-95');
+            bookingModal.classList.add('opacity-0', 'pointer-events-none');
+            bookingForm.reset();
+            modalDate.value = todayStr;
+        }
+
+        openModalBtn.addEventListener('click', () => openModal());
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelFormBtn.addEventListener('click', closeModal);
+        
+        // Modal backdrop click
+        bookingModal.addEventListener('click', (e) => {
+            if (e.target === bookingModal) closeModal();
+        });
+
+        // Facility card clicks
+        document.querySelectorAll('.facility-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const facilityName = card.getAttribute('data-facility');
+                openModal(facilityName);
+            });
+        });
+
+        function isOverlap(newBooking) {
+            // Check against all existing reservations
+            return allReservations.some(item => {
+                // Ignore different facilities
+                if (item.facility !== newBooking.facility) return false;
+                // Ignore different dates
+                if (item.date !== newBooking.date) return false;
+
+                // Time overlap logic: (StartA < EndB) AND (EndA > StartB)
+                const startA = newBooking.startTime;
+                const endA = newBooking.endTime;
+                const startB = item.startTime;
+                const endB = item.endTime;
+
+                return (startA < endB) && (endA > startB);
+            });
+        }
+
+        async function initApp() {
+            try {
+                // Anonymous auth to ensure Firestore access rule fulfillment
+                await signInAnonymously(auth);
+
+                // Set up Real-time Listener on Firestore Collection
+                const colRef = collection(db, RESERVATIONS_COLLECTION);
+
+                onSnapshot(colRef, (snapshot) => {
+                    const data = [];
+                    snapshot.forEach(docSnap => {
+                        data.push({
+                            id: docSnap.id,
+                            ...docSnap.data()
+                        });
+                    });
+
+                    // Sort locally by date then start time ascending
+                    data.sort((a, b) => {
+                        if (a.date !== b.date) {
+                            return a.date.localeCompare(b.date);
+                        }
+                        return a.startTime.localeCompare(b.startTime);
+                    });
+
+                    allReservations = data;
+                    renderReservations();
+                }, (error) => {
+                    console.error("Firestore Snapshot Error:", error);
+                    showToast("データの同期に失敗しました", "error");
+                });
+
+            } catch (err) {
+                console.error("Auth / Init Error:", err);
+                showToast("初期化に失敗しました", "error");
+            }
+        }
+
+        // Submit Form -> Create Booking
+        bookingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const startTime = modalStartTime.value;
+            const endTime = modalEndTime.value;
+
+            if (startTime >= endTime) {
+                showToast("終了時間は開始時間より後の時刻を指定してください。", "error");
+                return;
+            }
+
+            const newReservation = {
+                facility: modalFacility.value,
+                date: modalDate.value,
+                startTime: startTime,
+                endTime: endTime,
+                reservedBy: modalReservedBy.value.trim(),
+                people: parseInt(modalPeople.value, 10),
+                contact: modalContact.value.trim(),
+                purpose: modalPurpose.value.trim(),
+            };
+
+            // Overlap Validation
+            if (isOverlap(newReservation)) {
+                showToast("指定された時間帯には既に他の予約が存在します。", "error");
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBookingBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 保存中...`;
+            lucide.createIcons();
+
+            try {
+                const colRef = collection(db, RESERVATIONS_COLLECTION);
+                await addDoc(colRef, {
+                    ...newReservation,
+                    createdAt: serverTimestamp()
+                });
+
+                showToast("予約が正常に登録されました！");
+                closeModal();
+            } catch (error) {
+                console.error("Error adding reservation: ", error);
+                showToast("予約の保存中にエラーが発生しました。", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> 予約を確定する`;
+                lucide.createIcons();
+            }
+        });
+
+        // Cancel/Delete Reservation
+        window.deleteReservation = async function(id) {
+            if (!confirm("この予約をキャンセル（削除）してもよろしいですか？")) {
+                return;
+            }
+
+            try {
+                const docRef = doc(db, RESERVATIONS_COLLECTION, id);
+                await deleteDoc(docRef);
+                showToast("予約を削除しました");
+            } catch (error) {
+                console.error("Error deleting reservation:", error);
+                showToast("削除中にエラーが発生しました", "error");
+            }
+        };
+
+        function renderReservations() {
+            // Apply Filters
+            let filtered = allReservations.filter(res => {
+                const matchFacility = (currentFilterFacility === 'ALL' || res.facility === currentFilterFacility);
+                const matchDate = (!currentFilterDate || res.date === currentFilterDate);
+                return matchFacility && matchDate;
+            });
+
+            // Update Header Counts & Labels
+            reservationCountEl.textContent = `${filtered.length}件`;
+            
+            let labelText = "表示: ";
+            labelText += currentFilterFacility === 'ALL' ? '全施設' : currentFilterFacility;
+            if (currentFilterDate) {
+                labelText += ` (${currentFilterDate})`;
+            }
+            currentFilterLabelEl.textContent = labelText;
+
+            // Render List Items
+            if (filtered.length === 0) {
+                reservationsListEl.innerHTML = `
+                    <div class="p-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+                        <i data-lucide="calendar-x" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
+                        <p class="font-medium text-slate-600">該当する予約はありません</p>
+                        <p class="text-xs text-slate-400 mt-1">絞り込み条件を変更するか、新しい予約を登録してください。</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            reservationsListEl.innerHTML = filtered.map(item => {
+                // Facility badge colors
+                let badgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
+                if (item.facility === 'イベントホール') badgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                if (item.facility === '多目的室') badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+
+                return `
+                    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex flex-col gap-2 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeClass}">
+                                    ${escapeHtml(item.facility)}
+                                </span>
+                                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
+                                    ${escapeHtml(item.date)}
+                                </span>
+                                <span class="text-xs font-bold text-slate-900 bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                                    <i data-lucide="clock" class="w-3 h-3 text-indigo-500"></i>
+                                    ${escapeHtml(item.startTime)} - ${escapeHtml(item.endTime)}
+                                </span>
+                            </div>
+
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base leading-snug">
+                                    ${escapeHtml(item.purpose)}
+                                </h3>
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        予約者: <strong class="text-slate-700 font-medium">${escapeHtml(item.reservedBy)}</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="users" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        利用人数: ${escapeHtml(String(item.people))}名
+                                    </span>
+                                    ${item.contact ? `
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-400"></i>
+                                            ${escapeHtml(item.contact)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex sm:flex-col items-end justify-between border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+                            <button onclick="deleteReservation('${item.id}')" class="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 transition flex items-center gap-1 font-medium whitespace-nowrap">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                予約キャンセル
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Helper: HTML Escape
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Filter Event Listeners
+        filterFacilityEl.addEventListener('change', (e) => {
+            currentFilterFacility = e.target.value;
+            renderReservations();
+        });
+
+        filterDateEl.addEventListener('change', (e) => {
+            currentFilterDate = e.target.value;
+            renderReservations();
+        });
+
+        clearFiltersBtn.addEventListener('click', () => {
+            filterFacilityEl.value = 'ALL';
+            filterDateEl.value = '';
+            currentFilterFacility = 'ALL';
+            currentFilterDate = '';
+            renderReservations();
+        });
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
