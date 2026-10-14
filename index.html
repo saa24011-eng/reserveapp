@@ -35,9 +35,10 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Auth Loading Overlay -->
-    <div id="authLoading" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white">
+    <div id="authLoading" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white transition-opacity duration-300">
         <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3 text-indigo-400"></i>
         <p class="text-sm font-medium">認証状態を確認中...</p>
+        <p class="text-xs text-slate-300 mt-2">（数秒以上かかる場合は自動的にログイン画面へ移動します）</p>
     </div>
 
     <!-- Login Screen (Displayed when not logged in) -->
@@ -51,10 +52,10 @@
                 <p class="text-xs text-slate-500 mt-1">Facility Reservation System</p>
             </div>
             <p class="text-sm text-slate-600 leading-relaxed">
-                Googleアカウントでログインして、施設の空き確認および新規予約を行ってください。
+                Googleアカウントでログインして、施設の空き状況の確認および新規予約を行ってください。
             </p>
             
-            <button id="googleLoginBtn" class="w-full py-3.5 px-4 bg-white border border-slate-300 hover:border-indigo-400 text-slate-700 font-medium rounded-2xl shadow-sm hover:shadow transition flex items-center justify-center gap-3 active:scale-[0.99]">
+            <button id="googleLoginBtn" class="w-full py-3.5 px-4 bg-white border border-slate-300 hover:border-indigo-400 hover:bg-slate-50 text-slate-700 font-medium rounded-2xl shadow-sm hover:shadow transition flex items-center justify-center gap-3 active:scale-[0.99]">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -65,10 +66,12 @@
             </button>
 
             <!-- Error Banner -->
-            <div id="loginErrorMsg" class="hidden w-full text-xs text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl text-left"></div>
+            <div id="loginErrorMsg" class="hidden w-full text-xs text-red-600 bg-red-50 border border-red-200 p-3.5 rounded-2xl text-left leading-relaxed"></div>
 
-            <div class="text-[11px] text-slate-400 border-t border-slate-100 pt-4 w-full">
-                ※ ログインには Firebase Console の Authentication で 「Google」 ポップアップが無効化されていないことが必要です。
+            <div class="text-[11px] text-slate-400 border-t border-slate-100 pt-4 w-full text-left space-y-1">
+                <p class="font-semibold text-slate-500">【初回ログイン時のFirebase設定ガイド】</p>
+                <p>・Firebase Console → Authentication → Googleプロバイダを「有効」にしてください。</p>
+                <p>・GitHub Pagesのドメイン（例: <code class="bg-slate-100 px-1 rounded">username.github.io</code>）を「承認済みドメイン」に追加してください。</p>
             </div>
         </div>
     </div>
@@ -138,7 +141,7 @@
 
             <!-- Main Grid Layout -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Facility Info -->
+                <!-- Facility Info Cards -->
                 <div class="lg:col-span-1 flex flex-col gap-4">
                     <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
                         <i data-lucide="building" class="w-5 h-5 text-indigo-600"></i>
@@ -276,14 +279,15 @@
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+        // Standard ES module imports from official Firebase CDN (v11.4.0)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
         import { 
             getAuth, 
             GoogleAuthProvider, 
             signInWithPopup, 
             signOut, 
             onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
         import { 
             getFirestore, 
             collection, 
@@ -292,9 +296,9 @@
             doc, 
             onSnapshot, 
             serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
-        // Real Firebase Config provided by user
+        // User Credentials
         const firebaseConfig = {
             apiKey: "AIzaSyAx3MtBqHakfwtRCcyTnTEBpUjWskJk9w4",
             authDomain: "task7-ae56c.firebaseapp.com",
@@ -304,7 +308,7 @@
             appId: "1:704068811817:web:6d64ad930f6779dcb23038"
         };
 
-        // Initialize Real Firebase SDK Instance
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -319,7 +323,7 @@
         let currentFilterDate = '';
         let unsubscribeSnapshot = null;
 
-        // DOM Element Cache
+        // DOM Elements
         const authLoading = document.getElementById('authLoading');
         const loginContainer = document.getElementById('loginContainer');
         const mainApp = document.getElementById('mainApp');
@@ -357,6 +361,17 @@
 
         lucide.createIcons();
 
+        // Safety Timeout: Hide loading screen after 3 seconds if auth check hangs
+        let authCheckDone = false;
+        setTimeout(() => {
+            if (!authCheckDone) {
+                authLoading.classList.add('hidden');
+                if (!currentUser) {
+                    loginContainer.classList.remove('hidden');
+                }
+            }
+        }, 3000);
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -386,7 +401,7 @@
             }, 4000);
         }
 
-        // Real Google Login Popup Action
+        // Google Sign-In Action
         googleLoginBtn.addEventListener('click', async () => {
             loginErrorMsg.classList.add('hidden');
             googleLoginBtn.disabled = true;
@@ -395,28 +410,30 @@
                 await signInWithPopup(auth, provider);
                 showToast("Googleで正常にログインしました");
             } catch (error) {
-                console.error("Google Authentication error:", error);
+                console.error("Google Auth error:", error);
                 let errorDetails = "Googleログインに失敗しました。";
                 
                 if (error.code === 'auth/popup-closed-by-user') {
-                    errorDetails = "ログイン画面のポップアップが閉じられました。";
+                    errorDetails = "ログイン用ポップアップが閉じられました。";
                 } else if (error.code === 'auth/unauthorized-domain') {
-                    errorDetails = "Firebaseコンソールでこのドメイン（GitHub Pages等）が許可されていません。";
+                    errorDetails = "【設定エラー】Firebase Consoleの 「Authentication」 → 「設定」 → 「承認済みドメイン」 にご利用中のドメインを追加してください。";
                 } else if (error.code === 'auth/operation-not-allowed') {
-                    errorDetails = "FirebaseコンソールのAuthenticationでGoogleプロバイダが有効化されていません。";
+                    errorDetails = "【設定エラー】Firebase Consoleの 「Authentication」 → 「Sign-in method」 で Google を「有効」に設定してください。";
+                } else if (error.code === 'auth/popup-blocked') {
+                    errorDetails = "ブラウザのポップアップブロックによりログイン画面が開けませんでした。許可設定を行ってください。";
                 } else {
                     errorDetails += ` (${error.message})`;
                 }
                 
                 loginErrorMsg.textContent = errorDetails;
                 loginErrorMsg.classList.remove('hidden');
-                showToast(errorDetails, "error");
+                showToast("ログイン処理中にエラーが発生しました", "error");
             } finally {
                 googleLoginBtn.disabled = false;
             }
         });
 
-        // Real Google Signout Action
+        // Sign Out Action
         logoutBtn.addEventListener('click', async () => {
             try {
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -428,23 +445,23 @@
             }
         });
 
-        // Real Auth State Listener
+        // Auth State Listener
         onAuthStateChanged(auth, (user) => {
+            authCheckDone = true;
             authLoading.classList.add('hidden');
+
             if (user) {
                 currentUser = user;
-                // Render real user details
                 userAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=6366f1&color=fff`;
                 userName.textContent = user.displayName || 'ユーザー';
                 userEmail.textContent = user.email || '';
                 
-                // Pre-fill user name into booking form
                 modalReservedBy.value = user.displayName || '';
 
                 loginContainer.classList.add('hidden');
                 mainApp.classList.remove('hidden');
 
-                // Connect Real Firestore Realtime Listener
+                // Connect to Firestore
                 subscribeToReservations();
             } else {
                 currentUser = null;
@@ -455,7 +472,7 @@
             }
         });
 
-        // Firestore Realtime listener
+        // Firestore Realtime Listener
         function subscribeToReservations() {
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
@@ -466,7 +483,7 @@
                     data.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // Sort in memory by date and start time
+                // Sort in JS memory (Date -> StartTime)
                 data.sort((a, b) => {
                     if (a.date !== b.date) return a.date.localeCompare(b.date);
                     return a.startTime.localeCompare(b.startTime);
@@ -476,10 +493,11 @@
                 renderReservations();
             }, (error) => {
                 console.error("Firestore sync error:", error);
-                showToast("データのリアルタイム取得に失敗しました", "error");
+                showToast("予約データの取得に失敗しました", "error");
             });
         }
 
+        // Overlap Verification
         function isOverlap(newBooking) {
             return allReservations.some(item => {
                 if (item.facility !== newBooking.facility) return false;
@@ -522,6 +540,7 @@
             card.addEventListener('click', () => openModal(card.getAttribute('data-facility')));
         });
 
+        // Booking Submit
         bookingForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -534,7 +553,7 @@
             const endTime = modalEndTime.value;
 
             if (startTime >= endTime) {
-                showToast("終了時間は開始時間より後の時間を設定してください", "error");
+                showToast("終了時間は開始時間より後の時間を指定してください", "error");
                 return;
             }
 
@@ -548,11 +567,11 @@
                 purpose: modalPurpose.value.trim(),
                 userId: currentUser.uid,
                 userEmail: currentUser.email,
-                userName: currentUser.displayName || '匿名'
+                userName: currentUser.displayName || 'ユーザー'
             };
 
             if (isOverlap(newReservation)) {
-                showToast("その時間帯はすでに同じ施設で別の予約が入っています", "error");
+                showToast("指定の時間帯は既に同じ施設で別の予約が入っています", "error");
                 return;
             }
 
@@ -568,7 +587,7 @@
                     createdAt: serverTimestamp()
                 });
 
-                showToast("予約を登録しました！");
+                showToast("施設予約が完了しました！");
                 closeModal();
             } catch (error) {
                 console.error("Firestore Save Error: ", error);
@@ -580,9 +599,10 @@
             }
         });
 
+        // Reservation Cancellation
         window.deleteReservation = async function(id, creatorUid) {
             if (currentUser?.uid !== creatorUid) {
-                showToast("自分が作成した予約のみキャンセルできます", "error");
+                showToast("ご自身が登録した予約のみ削除可能です", "error");
                 return;
             }
 
@@ -590,13 +610,14 @@
 
             try {
                 await deleteDoc(doc(db, RESERVATIONS_COLLECTION, id));
-                showToast("予約を削除しました");
+                showToast("予約をキャンセルしました");
             } catch (error) {
                 console.error("Firestore Delete Error:", error);
-                showToast("削除中にエラーが発生しました", "error");
+                showToast("キャンセル中にエラーが発生しました", "error");
             }
         };
 
+        // Render List
         function renderReservations() {
             let filtered = allReservations.filter(res => {
                 const matchFacility = (currentFilterFacility === 'ALL' || res.facility === currentFilterFacility);
@@ -661,7 +682,7 @@
                                         ${escapeHtml(String(item.people))}名
                                     </span>
                                     <span class="text-slate-400 text-[11px]">
-                                        (作成アカウント: ${escapeHtml(item.userName || item.userEmail || '不明')})
+                                        (作成者: ${escapeHtml(item.userName || item.userEmail || '不明')})
                                     </span>
                                 </div>
                             </div>
@@ -704,7 +725,6 @@
             currentFilterDate = '';
             renderReservations();
         });
-   index.html [generated with web_code_canvas tool] 　
     </script>
 </body>
 </html>
